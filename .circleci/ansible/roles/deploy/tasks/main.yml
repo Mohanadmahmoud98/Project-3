@@ -2,7 +2,7 @@
 - name: "copy files"
   become: yes
   copy: 
-    src: root/project/backend
+    src: ../../../../backend
     dest: ~/home/ubuntu/backend
 
 - name: "start mainjs"
