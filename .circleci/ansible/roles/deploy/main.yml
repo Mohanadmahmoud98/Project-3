@@ -1,0 +1,12 @@
+---
+- name: "copy files"
+  become: yes
+  copy: 
+    src: project/backend
+    dest: ~/home/ubuntu/backend
+
+- name: "start mainjs"
+  become: yes
+  shell: |
+    cd backend
+    pm2 start npm --run start
