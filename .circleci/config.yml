@@ -253,7 +253,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["26:2f:64:21:06:3d:17:e9:59:cc:f2:6f:52:62:50:80"]
       - attach_workspace:
-          at: ~/projec
+          at: ~/project
       
       - run:
           name: Install dependencies
@@ -279,6 +279,7 @@ jobs:
             echo "env file"
             cat .env            
             echo "check dist file"
+            cd ../
             cd .circleci/ansible
             echo "content"
             cat inventory.txt
