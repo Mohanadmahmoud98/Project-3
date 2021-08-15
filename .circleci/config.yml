@@ -259,9 +259,10 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update ansible
-            apk add --update nodejs npm
+            apk add --update nodejs npm tar gzip
       - run:
           name: Deploy backend
+          no_output_timeout: 160m
           command: |
             cd backend
             npm i
@@ -279,6 +280,7 @@ jobs:
             echo "env file"
             cat .env            
             echo "check dist file"
+            tar -C backend -czvf artifact.tar.gz .
             cd ../
             cd .circleci/ansible
             echo "content"

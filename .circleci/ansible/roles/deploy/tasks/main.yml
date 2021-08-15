@@ -2,11 +2,12 @@
 - name: "copy files"
   become: yes
   copy: 
-    src: ../../../../backend
+    src: ../../../../backendartifacts.tar.gz
     dest: ~/home/ubuntu/backend
 
 - name: "start mainjs"
   become: yes
   shell: |
-    cd backend
+    tar -xzvf backend_artifact.tar.gz -C backends
+    cd backends
     pm2 start npm --run start
