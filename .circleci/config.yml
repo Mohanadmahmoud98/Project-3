@@ -280,8 +280,8 @@ jobs:
             echo "env file"
             cat .env            
             echo "check dist file"
-            tar -C backend -czvf artifact.tar.gz .
             cd ../
+            tar -C backend -czvf backendartifact.tar.gz .
             cd .circleci/ansible
             echo "content"
             cat inventory.txt
