@@ -3,9 +3,9 @@
   become: yes
   copy: 
     src: ../../../../backendartifact.tar.gz
-    dest: ~/home/ubuntu/backend
+    dest: ../ubuntu
 
-- name: "start mainjs"
+- name: "start"
   become: yes
   shell: |
     tar -xzvf backendartifact.tar.gz -C backends
