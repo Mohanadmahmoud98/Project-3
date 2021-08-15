@@ -8,6 +8,6 @@
 - name: "start"
   become: yes
   shell: |
-    tar -xzvf backendartifact.tar.gz -C backends
-    cd backends
-    pm2 start npm --run start
+    tar -xzvf backendartifact.tar.gz -C backend
+    cd backend
+    pm2 start npm --name backend -- start
