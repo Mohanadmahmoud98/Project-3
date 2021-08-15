@@ -1,4 +1,38 @@
 version: 2.1
+commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    parameters:
+      ID:
+       type: string      
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws s3 rm s3://frontend-<< parameters.ID >> --recursive
+            aws cloudformation delete-stack --stack-name backend-<< parameters.workflow_id >>
+            aws cloudformation delete-stack --stack-name frontend-<< parameters.workflow_id >>
+
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      workID:
+        type: string      
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          # Add when this will run
+          command: |
+            # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
+            SUCCESS = curl -H "token: << parameters.workID >>" --request GET https://api.memstash.io/values/status
+            if(( $SUCCESS==1 )); 
+            then
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi
 jobs:
   build-frontend:
     docker:
@@ -148,6 +182,8 @@ jobs:
           paths:
             - .circleci/ansible/inventory.txt
             - backend/
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID}
 
   configure-infrastructure:
     docker:
@@ -169,7 +205,9 @@ jobs:
             cd .circleci/ansible
             echo "content"
             cat inventory.txt
-            ansible-playbook -i inventory.txt configure-server.yml  
+            ansible-playbook -i inventory.txt configure-server.yml 
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID}            
   run-migrations:
     docker:
       - image: circleci/node:13.8.0
@@ -201,7 +239,10 @@ jobs:
             else
              curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" --request PUT --data "0" https://api.memstash.io/values/status
             fi
-     # Here's where you will add some code to rollback on failure      
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID} 
+      - revert-migrations:
+          workID: ${CIRCLE_WORKFLOW_ID}       
   deploy-frontend:
     docker:
       - image: amazon/aws-cli
@@ -243,8 +284,10 @@ jobs:
             cd dist
             aws s3 sync . s3://udapeople-${CIRCLE_WORKFLOW_ID} --delete
 
-            # your code here
-      # Here's where you will add some code to rollback on failure    
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID} 
+      - revert-migrations:
+          workID: ${CIRCLE_WORKFLOW_ID}     
   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
@@ -286,21 +329,26 @@ jobs:
             echo "content"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml  
-
-            
-            
-
-            
-      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID} 
+      - revert-migrations:
+          workID: ${CIRCLE_WORKFLOW_ID}  
   smoke-test:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            yum install curl
+            apk add --no-cache \
+              curl \
+              python3 \
+              py3-pip \
+              && pip3 install --upgrade pip \
+              && pip3 install \
+              awscli \
+              && rm -rf /var/cache/apk/
       - run:
           name: Backend smoke test.
           command: |
@@ -314,13 +362,16 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-            if curl -s  "http://udapeople-${CIRCLE_WORKFLOW_ID}.s3-website-us-east-1.amazonaws.com" | grep "Welcome"
+            if curl -s "http://udapeople-${CIRCLE_WORKFLOW_ID}.s3-website-us-east-1.amazonaws.com/#/employees"
             then
               return 1
             else
               return 1
             fi
-      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          ID: ${CIRCLE_WORKFLOW_ID} 
+      - revert-migrations:
+          workID: ${CIRCLE_WORKFLOW_ID}  
 
 workflows:
   default:
