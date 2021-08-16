@@ -23,10 +23,8 @@
     - name: "wait 600 seconds for target connection to become reachable/usable."
       become : yes
       pause: 
-        minutes: 6
-    - name: "install python for Ansible."
-      become : yes
-      raw: apt install -y python3
+        minutes: 2
+
       
       # Your code here
 
