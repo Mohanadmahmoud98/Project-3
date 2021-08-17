@@ -414,10 +414,10 @@ jobs:
             aws s3 rm s3://udapeople-${OLD_WORKFLOW_ID} --recursive
             aws cloudformation delete-stack --stack-name backend-${OLD_WORKFLOW_ID}
             aws cloudformation delete-stack --stack-name frontend-${OLD_WORKFLOW_ID}
-      - revert-migrations:
-          workflow_id: ${CIRCLE_WORKFLOW_ID}
       - destroy-environment:
-          workflow_id: ${CIRCLE_WORKFLOW_ID}
+          ID: ${CIRCLE_WORKFLOW_ID} 
+      - revert-migrations:
+          workID: ${CIRCLE_WORKFLOW_ID}
 workflows:
   default:
     jobs:
