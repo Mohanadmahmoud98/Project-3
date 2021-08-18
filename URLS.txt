@@ -1,0 +1,5 @@
+EC2 URL: ec2-34-203-249-28.compute-1.amazonaws.com:3030/api/status
+S3 URL: http://udapeople-ecac3066-a5db-47d9-ba3a-185d3d559ce4.s3-website-us-east-1.amazonaws.com
+Cloudfront URL: https://d15udvop5tf7dx.cloudfront.net
+prometheus URL instance: ec2-34-224-16-245.compute-1.amazonaws.com
+Github repo: https://github.com/Mohanadmahmoud98/Project-3

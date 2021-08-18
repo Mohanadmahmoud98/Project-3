@@ -396,27 +396,52 @@ jobs:
           ID: ${CIRCLE_WORKFLOW_ID} 
       - revert-migrations:
           workID: ${CIRCLE_WORKFLOW_ID}  
-  cleanup:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      # Checkout code from git
-      - checkout
-      - run:
-          name: Remove old stacks and files
-          command: |
-            export OldWorkflowID=$(aws cloudformation \
-             list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-             --no-paginate --output text)
-            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-              --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
-            echo Old Workflow Id:${OLD_WORKFLOW_ID}
-            echo "New id:${CIRCLE_WORKFLOW_ID:0:4}"
-            echo ${STACKS}
-            echo "Deleting stacks with Old Worflow ID: ${OLD_WORKFLOW_ID}"
-            aws s3 rm s3://udapeople-${OLD_WORKFLOW_ID} --recursive
-            aws cloudformation delete-stack --stack-name backend-${OLD_WORKFLOW_ID}
-            aws cloudformation delete-stack --stack-name frontend-${OLD_WORKFLOW_ID}
+    cleanup:
+      docker:
+        # Docker image here
+        - image: amazon/aws-cli
+      steps:
+        # Checkout code from git
+        - checkout
+        - run:
+            name: Install dependencies
+            command: |
+              # your code here
+              yum install -y tar
+              yum install -y gzip
+              yum install -y jq
+              curl -sL https://rpm.nodesource.com/setup_14.x | bash -
+              yum install -y nodejs
+       - run:
+            name: Remove old stacks and files
+            command: |
+              OldWorkflowID=$(curl -H "token: ba893121-109f-4cad-ad93-13a7b46c4149" --request GET https://api.memstash.io/values/old-workflow-id)
+              echo ${OldWorkflowID}
+              aws cloudformation delete-stack --stack-name "backend-${OldWorkflowID}"
+              aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+              aws cloudformation delete-stack --stack-name "frontend-${OldWorkflowID}"
+        - run:
+            name: Roll back cloud front
+            when: on_fail
+            command: | 
+              oldCloudFront=$(curl -H "token: ba893121-109f-4cad-ad93-13a7b46c4149" --request GET https://api.memstash.io/values/old-workflow-id)
+              aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople" \
+              --parameter-overrides WorkflowID="${oldCloudFront}"
+        - run:
+            name: set old workflow ID
+            when: on_success
+            command: |
+              curl -H "Content-Type: text/plain" -H "token: ba893121-109f-4cad-ad93-13a7b46c4149" --request PUT --data "${CIRCLE_WORKFLOW_ID}" https://api.memstash.io/values/old-workflow-id
+        - revert-migrations
+        - send-slack-fail
+        - destroy-environment:
+            stack: "frontend" 
+        - destroy-environment:
+            stack: "backend"
+
       - destroy-environment:
           ID: ${CIRCLE_WORKFLOW_ID} 
       - revert-migrations:
@@ -436,6 +461,9 @@ workflows:
           requires: [build-frontend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [circleci-editor/main]          
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
@@ -448,5 +476,7 @@ workflows:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
+      #- cleanup:
+         # requires: [cloudfront-update]
 
       
