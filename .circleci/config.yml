@@ -129,9 +129,11 @@ jobs:
           name: scan back-end
           command: |
             cd backend
+            yum install epel-release -y
+            yum install jq -y
             
             npm audit fix --audit-level=critical --force
-            echo devDependencies["standard-version"] = 7 > package.json
+            jq '.devDependencies.standard-version = "7"' package.json|sponge package.json
             cat package.json
       - save_cache:
           paths: [backend/node_modules]
